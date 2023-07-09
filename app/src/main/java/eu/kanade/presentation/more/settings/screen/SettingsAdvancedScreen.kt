@@ -36,6 +36,7 @@ import eu.kanade.tachiyomi.data.cache.ChapterCache
 import eu.kanade.tachiyomi.data.download.DownloadCache
 import eu.kanade.tachiyomi.data.library.LibraryUpdateJob
 import eu.kanade.tachiyomi.data.track.TrackManager
+import eu.kanade.tachiyomi.network.FlareSolverrPreferences
 import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.network.NetworkPreferences
 import eu.kanade.tachiyomi.network.PREF_DOH_360
@@ -68,6 +69,7 @@ import tachiyomi.domain.manga.repository.MangaRepository
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.io.File
+import java.net.URL
 
 object SettingsAdvancedScreen : SearchableSettings {
 
@@ -84,6 +86,7 @@ object SettingsAdvancedScreen : SearchableSettings {
 
         val basePreferences = remember { Injekt.get<BasePreferences>() }
         val networkPreferences = remember { Injekt.get<NetworkPreferences>() }
+        val flareSolverrPreferences = remember { Injekt.get<FlareSolverrPreferences>() }
 
         return buildList {
             addAll(
@@ -136,6 +139,7 @@ object SettingsAdvancedScreen : SearchableSettings {
                     getBackgroundActivityGroup(),
                     getDataGroup(),
                     getNetworkGroup(networkPreferences = networkPreferences),
+                    getFlareSolverrGroup(flareSolverrPreferences = flareSolverrPreferences),
                     getLibraryGroup(),
                     getExtensionsGroup(basePreferences = basePreferences),
                 ),
@@ -315,6 +319,64 @@ object SettingsAdvancedScreen : SearchableSettings {
                     onClick = {
                         userAgentPref.delete()
                         context.toast(R.string.requires_app_restart)
+                    },
+                ),
+            ),
+        )
+    }
+
+    @Composable
+    private fun getFlareSolverrGroup(flareSolverrPreferences: FlareSolverrPreferences): Preference.PreferenceGroup {
+        val context = LocalContext.current
+
+        return Preference.PreferenceGroup(
+            title = stringResource(R.string.label_flare_solverr),
+            preferenceItems = listOf(
+                Preference.PreferenceItem.SwitchPreference(
+                    pref = flareSolverrPreferences.enabled(),
+                    title = stringResource(R.string.pref_enable_flare_solverr),
+                ),
+                Preference.PreferenceItem.EditTextPreference(
+                    pref = flareSolverrPreferences.url(),
+                    title = stringResource(R.string.pref_flare_solverr_url),
+                    onValueChanged = {
+                        try {
+                            URL(it)
+                        } catch (_: Throwable) {
+                            context.toast(R.string.invalid_url)
+                            return@EditTextPreference false
+                        }
+                        true
+                    },
+                ),
+                Preference.PreferenceItem.EditTextPreference(
+                    pref = flareSolverrPreferences.userAgent(),
+                    title = stringResource(R.string.pref_flare_solverr_user_agent),
+                ),
+                Preference.PreferenceItem.EditTextPreference(
+                    pref = flareSolverrPreferences.captchaPort(),
+                    title = stringResource(R.string.pref_flare_solverr_captcha_port),
+                    onValueChanged = {
+                        try {
+                            it.toInt()
+                        } catch (_: Throwable) {
+                            context.toast(R.string.invalid_port)
+                            return@EditTextPreference false
+                        }
+                        true
+                    },
+                ),
+                Preference.PreferenceItem.EditTextPreference(
+                    pref = flareSolverrPreferences.captchaMaxTimeout(),
+                    title = stringResource(R.string.pref_flare_solverr_captcha_max_timeout),
+                    onValueChanged = {
+                        try {
+                            it.toInt()
+                        } catch (_: Throwable) {
+                            context.toast(R.string.invalid_timeout)
+                            return@EditTextPreference false
+                        }
+                        true
                     },
                 ),
             ),

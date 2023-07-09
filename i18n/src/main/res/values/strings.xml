@@ -524,6 +524,16 @@
     <string name="backup_info">You should keep copies of backups in other places as well.</string>
 
       <!-- Advanced section -->
+    <string name="label_flare_solverr">FlareSolverr</string>
+    <string name="pref_flare_solverr">FlareSolverr address</string>
+    <string name="pref_enable_flare_solverr">Enable Flaresolverr</string>
+    <string name="pref_flare_solverr_url">FlareSolverr address</string>
+    <string name="invalid_url">Invalid address</string>
+    <string name="pref_flare_solverr_user_agent">FlareSolverr UserAgent</string>
+    <string name="pref_flare_solverr_captcha_port">Port</string>
+    <string name="invalid_port">Invalid port</string>
+    <string name="pref_flare_solverr_captcha_max_timeout">Max Timeout</string>
+    <string name="invalid_timeout">Invalid timeout</string>
     <string name="label_network">Network</string>
     <string name="pref_clear_cookies">Clear cookies</string>
     <string name="pref_dns_over_https">DNS over HTTPS (DoH)</string>
