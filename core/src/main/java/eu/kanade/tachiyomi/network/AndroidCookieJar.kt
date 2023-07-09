@@ -51,4 +51,8 @@ class AndroidCookieJar : CookieJar {
     fun removeAll() {
         manager.removeAllCookies {}
     }
+
+    fun setCookie(domain: String, s: String) {
+        manager.setCookie(domain, s)
+    }
 }

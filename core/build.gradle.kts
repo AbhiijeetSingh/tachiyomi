@@ -29,7 +29,7 @@ dependencies {
     api(libs.okio)
 
     implementation(libs.image.decoder)
-
+    implementation(libs.injekt.core)
     implementation(libs.unifile)
 
     api(kotlinx.coroutines.core)

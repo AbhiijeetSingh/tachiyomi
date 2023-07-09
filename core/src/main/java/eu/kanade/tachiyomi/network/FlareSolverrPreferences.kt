@@ -3,15 +3,11 @@ import tachiyomi.core.preference.Preference
 import tachiyomi.core.preference.PreferenceStore
 
 class FlareSolverrPreferences(private val preferenceStore: PreferenceStore) {
-    fun flareSolverrDeafaultUrl(): String {
-        return "http://localhost"
-    }
-
     fun enabled(): Preference<Boolean> {
         return preferenceStore.getBoolean("flare_solverr_enabled", false)
     }
 
-    fun userAgent(): Preference<String> {
+    fun getUserAgent(): Preference<String> {
         return preferenceStore.getString("flare_solverr_user_agent", NetworkPreferences(preferenceStore).defaultUserAgent().get())
     }
 
@@ -20,7 +16,7 @@ class FlareSolverrPreferences(private val preferenceStore: PreferenceStore) {
     }
 
     fun url(): Preference<String> {
-        return preferenceStore.getString("flare_solverr_url", flareSolverrDeafaultUrl())
+        return preferenceStore.getString("flare_solverr_url", "http://localhost")
     }
 
     fun captchaMaxTimeout(): Preference<String> {

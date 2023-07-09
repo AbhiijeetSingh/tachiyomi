@@ -350,7 +350,7 @@ object SettingsAdvancedScreen : SearchableSettings {
                     },
                 ),
                 Preference.PreferenceItem.EditTextPreference(
-                    pref = flareSolverrPreferences.userAgent(),
+                    pref = flareSolverrPreferences.getUserAgent(),
                     title = stringResource(R.string.pref_flare_solverr_user_agent),
                 ),
                 Preference.PreferenceItem.EditTextPreference(
