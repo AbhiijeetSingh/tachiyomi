@@ -8,6 +8,7 @@ import androidx.core.content.ContextCompat
 import eu.kanade.tachiyomi.core.R
 import eu.kanade.tachiyomi.network.AndroidCookieJar
 import eu.kanade.tachiyomi.network.FlareSolverrPreferences
+import eu.kanade.tachiyomi.network.NetworkPreferences
 import eu.kanade.tachiyomi.util.system.WebViewClientCompat
 import eu.kanade.tachiyomi.util.system.isOutdated
 import eu.kanade.tachiyomi.util.system.toast
@@ -18,7 +19,7 @@ import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import org.json.JSONObject
 import uy.kohesive.injekt.Injekt
@@ -29,10 +30,10 @@ import java.util.concurrent.CountDownLatch
 class CloudflareInterceptor(
     private val context: Context,
     private val cookieManager: AndroidCookieJar,
-
     defaultUserAgentProvider: () -> String,
 ) : WebViewInterceptor(context, defaultUserAgentProvider) {
-    val flareSolverrPreferences = Injekt.get<FlareSolverrPreferences>()
+    private val flareSolverrPreferences = Injekt.get<FlareSolverrPreferences>()
+    private val networkPreferences = Injekt.get<NetworkPreferences>()
     private val executor = ContextCompat.getMainExecutor(context)
 
     override fun shouldIntercept(response: Response): Boolean {
@@ -52,7 +53,7 @@ class CloudflareInterceptor(
                 .firstOrNull { it.name == "cf_clearance" }
 
             if (flareSolverrPreferences.enabled().get()) {
-                resolveWithFlareSolverr(request, oldCookie)
+                resolveWithFlareSolverr(request)
             } else {
                 resolveWithWebView(request, oldCookie)
             }
@@ -150,25 +151,23 @@ class CloudflareInterceptor(
         }
     }
 
-    private fun resolveWithFlareSolverr(originalRequest: Request, oldCookie: Cookie?) {
+    private fun resolveWithFlareSolverr(originalRequest: Request) {
         val flareSolverrUrl = flareSolverrPreferences.url().get()
         val flareSolverrPort = flareSolverrPreferences.captchaPort().get()
-        val uri = "$flareSolverrUrl:$flareSolverrPort/v1"
+        val url = "$flareSolverrUrl:$flareSolverrPort/v1"
         val latch = CountDownLatch(1)
 
         val requestUrl = originalRequest.url.toString()
         val requestBody = JSONObject()
             .put("cmd", "request.get")
             .put("url", requestUrl)
-            .put("maxTimeout", 60000)
+            .put("returnOnlyCookies", true)
+            .put("maxTimeout", flareSolverrPreferences.captchaMaxTimeout().get().toInt())
 
         val request = Request.Builder()
-            .url(uri)
+            .url(url)
             .post(
-                RequestBody.create(
-                    "application/json".toMediaTypeOrNull(),
-                    requestBody.toString(),
-                ),
+                requestBody.toString().toRequestBody("application/json".toMediaTypeOrNull()),
             )
             .build()
 
@@ -187,19 +186,29 @@ class CloudflareInterceptor(
                     val responseJson = JSONObject(responseBody)
                     if (responseJson.getString("status").equals("ok")) {
                         val solution = responseJson.getJSONObject("solution")
-                        val useragent = solution.getString("userAgent")
+                        val userAgent = solution.getString("userAgent")
+
+                        if (userAgent.isNotEmpty()) {
+                            networkPreferences.defaultUserAgent().set(userAgent)
+                        }
+
                         val cookies = solution.getJSONArray("cookies")
+                        val cookieList = mutableListOf<Cookie>()
 
                         for (i in 0 until cookies.length()) {
                             val cookie = cookies.getJSONObject(i)
-                            val name = cookie.getString("name")
-                            if (name.equals("cf_clearance")) {
-                                val value = cookie.getString("value")
-                                val domain = cookie.getString("domain")
-                                cookieManager.setCookie(domain, "$name=$value")
-                            }
+                            cookieList.add(
+                                Cookie.Builder()
+                                    // FlareSolverr returns domain with a leading dot
+                                    .domain(cookie.getString("domain").removePrefix("."))
+                                    .path(cookie.getString("path"))
+                                    .name(cookie.getString("name"))
+                                    .value(cookie.getString("value"))
+                                    .build(),
+                            )
                         }
-
+                        println(cookieList)
+                        cookieManager.saveFromResponse(requestUrl.toHttpUrl(), cookieList)
                         latch.countDown()
                     } else {
                         latch.countDown()

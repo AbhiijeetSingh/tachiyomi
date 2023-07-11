@@ -6,11 +6,6 @@ class FlareSolverrPreferences(private val preferenceStore: PreferenceStore) {
     fun enabled(): Preference<Boolean> {
         return preferenceStore.getBoolean("flare_solverr_enabled", false)
     }
-
-    fun getUserAgent(): Preference<String> {
-        return preferenceStore.getString("flare_solverr_user_agent", NetworkPreferences(preferenceStore).defaultUserAgent().get())
-    }
-
     fun captchaPort(): Preference<String> {
         return preferenceStore.getString("flare_solverr_captcha_port", "8191")
     }
