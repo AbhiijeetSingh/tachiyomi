@@ -1,28 +1,36 @@
 package eu.kanade.tachiyomi.network.interceptor
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Build
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import eu.kanade.tachiyomi.core.R
+import eu.kanade.tachiyomi.network.AndroidCookieJar
 import eu.kanade.tachiyomi.util.system.DeviceUtil
+import eu.kanade.tachiyomi.util.system.WebViewClientCompat
 import eu.kanade.tachiyomi.util.system.WebViewUtil
+import eu.kanade.tachiyomi.util.system.isOutdated
 import eu.kanade.tachiyomi.util.system.setDefaultSettings
 import eu.kanade.tachiyomi.util.system.toast
+import okhttp3.Cookie
 import okhttp3.Headers
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Interceptor
 import okhttp3.Request
 import okhttp3.Response
 import tachiyomi.core.util.lang.launchUI
 import java.util.Locale
 import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 
-abstract class WebViewInterceptor(
+class WebViewInterceptor(
     private val context: Context,
+    private val cookieManager: AndroidCookieJar,
     private val defaultUserAgentProvider: () -> String,
-) : Interceptor {
+) : CloudflareInterceptorBase(context, defaultUserAgentProvider) {
+    private val executor = ContextCompat.getMainExecutor(context)
 
     /**
      * When this is called, it initializes the WebView if it wasn't already. We use this to avoid
@@ -43,11 +51,6 @@ abstract class WebViewInterceptor(
             // Avoid some crashes like when Chrome/WebView is being updated.
         }
     }
-
-    abstract fun shouldIntercept(response: Response): Boolean
-
-    abstract fun intercept(chain: Interceptor.Chain, request: Request, response: Response): Response
-
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
         val response = chain.proceed(request)
@@ -66,7 +69,7 @@ abstract class WebViewInterceptor(
         return intercept(chain, request, response)
     }
 
-    fun parseHeaders(headers: Headers): Map<String, String> {
+    private fun parseHeaders(headers: Headers): Map<String, String> {
         return headers
             // Keeping unsafe header makes webview throw [net::ERR_INVALID_ARGUMENT]
             .filter { (name, value) ->
@@ -76,15 +79,94 @@ abstract class WebViewInterceptor(
             .mapValues { it.value.getOrNull(0).orEmpty() }
     }
 
-    fun CountDownLatch.awaitFor30Seconds() {
-        await(30, TimeUnit.SECONDS)
-    }
-
-    fun createWebView(request: Request): WebView {
+    private fun createWebView(request: Request): WebView {
         return WebView(context).apply {
             setDefaultSettings()
             // Avoid sending empty User-Agent, Chromium WebView will reset to default if empty
             settings.userAgentString = request.header("User-Agent") ?: defaultUserAgentProvider()
+        }
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    fun resolveWithWebView(originalRequest: Request, oldCookie: Cookie?) {
+        // We need to lock this thread until the WebView finds the challenge solution url, because
+        // OkHttp doesn't support asynchronous interceptors.
+        val latch = CountDownLatch(1)
+
+        var webview: WebView? = null
+
+        var challengeFound = false
+        var cloudflareBypassed = false
+        var isWebViewOutdated = false
+
+        val origRequestUrl = originalRequest.url.toString()
+        val headers = parseHeaders(originalRequest.headers)
+
+        executor.execute {
+            webview = createWebView(originalRequest)
+
+            webview?.webViewClient = object : WebViewClientCompat() {
+                override fun onPageFinished(view: WebView, url: String) {
+                    fun isCloudFlareBypassed(): Boolean {
+                        return cookieManager.get(origRequestUrl.toHttpUrl())
+                            .firstOrNull { it.name == "cf_clearance" }
+                            .let { it != null && it != oldCookie }
+                    }
+
+                    if (isCloudFlareBypassed()) {
+                        cloudflareBypassed = true
+                        latch.countDown()
+                    }
+
+                    if (url == origRequestUrl && !challengeFound) {
+                        // The first request didn't return the challenge, abort.
+                        latch.countDown()
+                    }
+                }
+
+                override fun onReceivedErrorCompat(
+                    view: WebView,
+                    errorCode: Int,
+                    description: String?,
+                    failingUrl: String,
+                    isMainFrame: Boolean,
+                ) {
+                    if (isMainFrame) {
+                        if (errorCode in ERROR_CODES) {
+                            // Found the Cloudflare challenge page.
+                            challengeFound = true
+                        } else {
+                            // Unlock thread, the challenge wasn't found.
+                            latch.countDown()
+                        }
+                    }
+                }
+            }
+
+            webview?.loadUrl(origRequestUrl, headers)
+        }
+
+        latch.awaitFor30Seconds()
+
+        executor.execute {
+            if (!cloudflareBypassed) {
+                isWebViewOutdated = webview?.isOutdated() == true
+            }
+
+            webview?.run {
+                stopLoading()
+                destroy()
+            }
+        }
+
+        // Throw exception if we failed to bypass Cloudflare
+        if (!cloudflareBypassed) {
+            // Prompt user to update WebView if it seems too outdated
+            if (isWebViewOutdated) {
+                context.toast(R.string.information_webview_outdated, Toast.LENGTH_LONG)
+            }
+
+            throw CloudflareBypassException()
         }
     }
 }
@@ -97,4 +179,5 @@ private fun isRequestHeaderSafe(_name: String, _value: String): Boolean {
     if (name == "connection" && value == "upgrade") return false
     return true
 }
+
 private val unsafeHeaderNames = listOf("content-length", "host", "trailer", "te", "upgrade", "cookie2", "keep-alive", "transfer-encoding", "set-cookie")
