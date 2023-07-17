@@ -113,6 +113,10 @@ class MainActivity : BaseActivity() {
 
     private var navigator: Navigator? = null
 
+    init {
+        registerSecureActivity(this)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val isLaunch = savedInstanceState == null
 
@@ -412,7 +416,7 @@ class MainActivity : BaseActivity() {
             INTENT_SEARCH -> {
                 val query = intent.getStringExtra(INTENT_SEARCH_QUERY)
                 if (!query.isNullOrEmpty()) {
-                    val filter = intent.getStringExtra(INTENT_SEARCH_FILTER) ?: ""
+                    val filter = intent.getStringExtra(INTENT_SEARCH_FILTER)
                     navigator.popUntilRoot()
                     navigator.push(GlobalSearchScreen(query, filter))
                 }
@@ -427,10 +431,6 @@ class MainActivity : BaseActivity() {
 
         ready = true
         return true
-    }
-
-    init {
-        registerSecureActivity(this)
     }
 
     companion object {
