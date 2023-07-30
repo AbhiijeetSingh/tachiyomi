@@ -36,12 +36,10 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.presentation.category.visualName
 import eu.kanade.presentation.more.settings.Preference
 import eu.kanade.presentation.more.settings.widget.TriStateListDialog
-import eu.kanade.presentation.util.collectAsState
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.library.LibraryUpdateJob
 import eu.kanade.tachiyomi.data.track.TrackManager
 import eu.kanade.tachiyomi.ui.category.CategoryScreen
-import eu.kanade.tachiyomi.util.system.isDevFlavor
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import tachiyomi.domain.category.interactor.GetCategories
@@ -58,6 +56,7 @@ import tachiyomi.domain.library.service.LibraryPreferences.Companion.MANGA_NON_R
 import tachiyomi.domain.library.service.LibraryPreferences.Companion.MANGA_OUTSIDE_RELEASE_PERIOD
 import tachiyomi.domain.manga.interactor.MAX_GRACE_PERIOD
 import tachiyomi.presentation.core.components.WheelTextPicker
+import tachiyomi.presentation.core.util.collectAsState
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
@@ -241,18 +240,15 @@ object SettingsLibraryScreen : SearchableSettings {
                     title = stringResource(R.string.pref_library_update_refresh_trackers),
                     subtitle = stringResource(R.string.pref_library_update_refresh_trackers_summary),
                 ),
-                // TODO: remove isDevFlavor checks once functionality is available
                 Preference.PreferenceItem.MultiSelectListPreference(
                     pref = libraryUpdateMangaRestrictionPref,
                     title = stringResource(R.string.pref_library_update_manga_restriction),
-                    entries = buildMap {
-                        put(MANGA_HAS_UNREAD, stringResource(R.string.pref_update_only_completely_read))
-                        put(MANGA_NON_READ, stringResource(R.string.pref_update_only_started))
-                        put(MANGA_NON_COMPLETED, stringResource(R.string.pref_update_only_non_completed))
-                        if (isDevFlavor) {
-                            put(MANGA_OUTSIDE_RELEASE_PERIOD, stringResource(R.string.pref_update_only_in_release_period))
-                        }
-                    },
+                    entries = mapOf(
+                        MANGA_HAS_UNREAD to stringResource(R.string.pref_update_only_completely_read),
+                        MANGA_NON_READ to stringResource(R.string.pref_update_only_started),
+                        MANGA_NON_COMPLETED to stringResource(R.string.pref_update_only_non_completed),
+                        MANGA_OUTSIDE_RELEASE_PERIOD to stringResource(R.string.pref_update_only_in_release_period),
+                    ),
                 ),
                 Preference.PreferenceItem.TextPreference(
                     title = stringResource(R.string.pref_update_release_grace_period),
@@ -261,10 +257,10 @@ object SettingsLibraryScreen : SearchableSettings {
                         pluralStringResource(R.plurals.pref_update_release_following_days, followRange, followRange),
                     ).joinToString(),
                     onClick = { showFetchRangesDialog = true },
-                ).takeIf { MANGA_OUTSIDE_RELEASE_PERIOD in libraryUpdateMangaRestriction && isDevFlavor },
+                ).takeIf { MANGA_OUTSIDE_RELEASE_PERIOD in libraryUpdateMangaRestriction },
                 Preference.PreferenceItem.InfoPreference(
                     title = stringResource(R.string.pref_update_release_grace_period_info),
-                ).takeIf { MANGA_OUTSIDE_RELEASE_PERIOD in libraryUpdateMangaRestriction && isDevFlavor },
+                ).takeIf { MANGA_OUTSIDE_RELEASE_PERIOD in libraryUpdateMangaRestriction },
                 Preference.PreferenceItem.SwitchPreference(
                     pref = libraryPreferences.newShowUpdatesCount(),
                     title = stringResource(R.string.pref_library_update_show_tab_badge),

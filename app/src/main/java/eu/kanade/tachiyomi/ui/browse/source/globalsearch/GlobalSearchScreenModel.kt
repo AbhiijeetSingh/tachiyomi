@@ -10,12 +10,16 @@ class GlobalSearchScreenModel(
     init {
         extensionFilter = initialExtensionFilter
         if (initialQuery.isNotBlank() || !initialExtensionFilter.isNullOrBlank()) {
+            if (extensionFilter != null) {
+                // we're going to use custom extension filter instead
+                setSourceFilter(SourceFilter.All)
+            }
             search()
         }
     }
 
     override fun getEnabledSources(): List<CatalogueSource> {
         return super.getEnabledSources()
-            .filter { mutableState.value.sourceFilter != SourceFilter.PinnedOnly || "${it.id}" in pinnedSources }
+            .filter { state.value.sourceFilter != SourceFilter.PinnedOnly || "${it.id}" in pinnedSources }
     }
 }

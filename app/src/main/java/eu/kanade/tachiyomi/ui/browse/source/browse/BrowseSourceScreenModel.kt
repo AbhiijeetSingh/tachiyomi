@@ -321,7 +321,7 @@ class BrowseSourceScreenModel(
     }
 
     suspend fun getDuplicateLibraryManga(manga: Manga): Manga? {
-        return getDuplicateLibraryManga.await(manga.title)
+        return getDuplicateLibraryManga.await(manga).getOrNull(0)
     }
 
     private fun moveMangaToCategories(manga: Manga, vararg categories: Category) {
@@ -350,8 +350,8 @@ class BrowseSourceScreenModel(
     }
 
     sealed class Listing(open val query: String?, open val filters: FilterList) {
-        object Popular : Listing(query = GetRemoteManga.QUERY_POPULAR, filters = FilterList())
-        object Latest : Listing(query = GetRemoteManga.QUERY_LATEST, filters = FilterList())
+        data object Popular : Listing(query = GetRemoteManga.QUERY_POPULAR, filters = FilterList())
+        data object Latest : Listing(query = GetRemoteManga.QUERY_LATEST, filters = FilterList())
         data class Search(override val query: String?, override val filters: FilterList) : Listing(query = query, filters = filters)
 
         companion object {
@@ -365,15 +365,15 @@ class BrowseSourceScreenModel(
         }
     }
 
-    sealed class Dialog {
-        object Filter : Dialog()
-        data class RemoveManga(val manga: Manga) : Dialog()
-        data class AddDuplicateManga(val manga: Manga, val duplicate: Manga) : Dialog()
+    sealed interface Dialog {
+        data object Filter : Dialog
+        data class RemoveManga(val manga: Manga) : Dialog
+        data class AddDuplicateManga(val manga: Manga, val duplicate: Manga) : Dialog
         data class ChangeMangaCategory(
             val manga: Manga,
             val initialSelection: List<CheckboxState.State<Category>>,
-        ) : Dialog()
-        data class Migrate(val newManga: Manga) : Dialog()
+        ) : Dialog
+        data class Migrate(val newManga: Manga) : Dialog
     }
 
     @Immutable
