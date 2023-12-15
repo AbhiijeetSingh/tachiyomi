@@ -19,32 +19,29 @@ class MigrateSearchScreen(private val mangaId: Long) : Screen() {
         val screenModel = rememberScreenModel { MigrateSearchScreenModel(mangaId = mangaId) }
         val state by screenModel.state.collectAsState()
 
-        val dialogScreenModel = rememberScreenModel { MigrateSearchScreenDialogScreenModel(mangaId = mangaId) }
-        val dialogState by dialogScreenModel.state.collectAsState()
-
         MigrateSearchScreen(
-            state = state,
-            fromSourceId = dialogState.manga?.source,
             navigateUp = navigator::pop,
-            onChangeSearchQuery = screenModel::updateSearchQuery,
-            onSearch = { screenModel.search() },
+            state = state,
             getManga = { screenModel.getManga(it) },
-            onChangeSearchFilter = screenModel::setSourceFilter,
-            onToggleResults = screenModel::toggleFilterResults,
+            onChangeSearchQuery = screenModel::updateSearchQuery,
+            onSearch = screenModel::search,
             onClickSource = {
-                navigator.push(SourceSearchScreen(dialogState.manga!!, it.id, state.searchQuery))
+                if (!screenModel.incognitoMode.get()) {
+                    screenModel.lastUsedSourceId.set(it.id)
+                }
+                navigator.push(SourceSearchScreen(state.manga!!, it.id, state.searchQuery))
             },
-            onClickItem = { dialogScreenModel.setDialog(MigrateSearchScreenDialogScreenModel.Dialog.Migrate(it)) },
+            onClickItem = { screenModel.setDialog(MigrateSearchDialog.Migrate(it)) },
             onLongClickItem = { navigator.push(MangaScreen(it.id, true)) },
         )
 
-        when (val dialog = dialogState.dialog) {
-            is MigrateSearchScreenDialogScreenModel.Dialog.Migrate -> {
+        when (val dialog = state.dialog) {
+            is MigrateSearchDialog.Migrate -> {
                 MigrateDialog(
-                    oldManga = dialogState.manga!!,
+                    oldManga = state.manga!!,
                     newManga = dialog.manga,
                     screenModel = rememberScreenModel { MigrateDialogScreenModel() },
-                    onDismissRequest = { dialogScreenModel.setDialog(null) },
+                    onDismissRequest = { screenModel.setDialog(null) },
                     onClickTitle = {
                         navigator.push(MangaScreen(dialog.manga.id, true))
                     },

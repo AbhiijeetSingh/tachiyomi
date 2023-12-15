@@ -7,6 +7,7 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import eu.kanade.presentation.more.settings.Preference
 import eu.kanade.tachiyomi.R
@@ -163,9 +164,9 @@ object SettingsReaderScreen : SearchableSettings {
                 Preference.PreferenceItem.ListPreference(
                     pref = navModePref,
                     title = stringResource(R.string.pref_viewer_nav),
-                    entries = ReaderPreferences.TapZones
-                        .mapIndexed { index, it -> index to stringResource(it) }
-                        .toMap(),
+                    entries = stringArrayResource(id = R.array.pager_nav).let {
+                        it.indices.zip(it).toMap()
+                    },
                 ),
                 Preference.PreferenceItem.ListPreference(
                     pref = readerPreferences.pagerNavInverted(),
@@ -181,16 +182,25 @@ object SettingsReaderScreen : SearchableSettings {
                 Preference.PreferenceItem.ListPreference(
                     pref = imageScaleTypePref,
                     title = stringResource(R.string.pref_image_scale_type),
-                    entries = ReaderPreferences.ImageScaleType
-                        .mapIndexed { index, it -> index + 1 to stringResource(it) }
-                        .toMap(),
+                    entries = mapOf(
+                        1 to stringResource(R.string.scale_type_fit_screen),
+                        2 to stringResource(R.string.scale_type_stretch),
+                        3 to stringResource(R.string.scale_type_fit_width),
+                        4 to stringResource(R.string.scale_type_fit_height),
+                        5 to stringResource(R.string.scale_type_original_size),
+                        6 to stringResource(R.string.scale_type_smart_fit),
+                    ),
                 ),
                 Preference.PreferenceItem.ListPreference(
                     pref = readerPreferences.zoomStart(),
                     title = stringResource(R.string.pref_zoom_start),
-                    entries = ReaderPreferences.ZoomStart
-                        .mapIndexed { index, it -> index + 1 to stringResource(it) }
-                        .toMap(),
+                    entries = mapOf(
+                        1 to stringResource(R.string.zoom_start_automatic),
+                        2 to stringResource(R.string.zoom_start_left),
+                        3 to stringResource(R.string.zoom_start_right),
+                        4 to stringResource(R.string.zoom_start_center),
+                    ),
+
                 ),
                 Preference.PreferenceItem.SwitchPreference(
                     pref = readerPreferences.cropBorders(),
@@ -255,9 +265,9 @@ object SettingsReaderScreen : SearchableSettings {
                 Preference.PreferenceItem.ListPreference(
                     pref = navModePref,
                     title = stringResource(R.string.pref_viewer_nav),
-                    entries = ReaderPreferences.TapZones
-                        .mapIndexed { index, it -> index to stringResource(it) }
-                        .toMap(),
+                    entries = stringArrayResource(id = R.array.webtoon_nav).let {
+                        it.indices.zip(it).toMap()
+                    },
                 ),
                 Preference.PreferenceItem.ListPreference(
                     pref = readerPreferences.webtoonNavInverted(),

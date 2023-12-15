@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.data.track.kitsu
 
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
 import okhttp3.Response

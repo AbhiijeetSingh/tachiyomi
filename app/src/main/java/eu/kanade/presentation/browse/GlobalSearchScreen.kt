@@ -1,30 +1,34 @@
 package eu.kanade.presentation.browse
 
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import eu.kanade.presentation.browse.components.GlobalSearchCardRow
 import eu.kanade.presentation.browse.components.GlobalSearchErrorResultItem
 import eu.kanade.presentation.browse.components.GlobalSearchLoadingResultItem
 import eu.kanade.presentation.browse.components.GlobalSearchResultItem
 import eu.kanade.presentation.browse.components.GlobalSearchToolbar
+import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.source.CatalogueSource
+import eu.kanade.tachiyomi.ui.browse.source.globalsearch.GlobalSearchState
 import eu.kanade.tachiyomi.ui.browse.source.globalsearch.SearchItemResult
-import eu.kanade.tachiyomi.ui.browse.source.globalsearch.SearchScreenModel
-import eu.kanade.tachiyomi.ui.browse.source.globalsearch.SourceFilter
 import eu.kanade.tachiyomi.util.system.LocaleHelper
 import tachiyomi.domain.manga.model.Manga
 import tachiyomi.presentation.core.components.material.Scaffold
+import tachiyomi.presentation.core.components.material.padding
 
 @Composable
 fun GlobalSearchScreen(
-    state: SearchScreenModel.State,
+    state: GlobalSearchState,
     navigateUp: () -> Unit,
     onChangeSearchQuery: (String?) -> Unit,
     onSearch: (String) -> Unit,
-    onChangeSearchFilter: (SourceFilter) -> Unit,
-    onToggleResults: () -> Unit,
     getManga: @Composable (Manga) -> State<Manga>,
     onClickSource: (CatalogueSource) -> Unit,
     onClickItem: (Manga) -> Unit,
@@ -39,16 +43,12 @@ fun GlobalSearchScreen(
                 navigateUp = navigateUp,
                 onChangeSearchQuery = onChangeSearchQuery,
                 onSearch = onSearch,
-                sourceFilter = state.sourceFilter,
-                onChangeSearchFilter = onChangeSearchFilter,
-                onlyShowHasResults = state.onlyShowHasResults,
-                onToggleResults = onToggleResults,
                 scrollBehavior = scrollBehavior,
             )
         },
     ) { paddingValues ->
         GlobalSearchContent(
-            items = state.filteredItems,
+            items = state.items,
             contentPadding = paddingValues,
             getManga = getManga,
             onClickSource = onClickSource,
@@ -59,8 +59,7 @@ fun GlobalSearchScreen(
 }
 
 @Composable
-internal fun GlobalSearchContent(
-    fromSourceId: Long? = null,
+private fun GlobalSearchContent(
     items: Map<CatalogueSource, SearchItemResult>,
     contentPadding: PaddingValues,
     getManga: @Composable (Manga) -> State<Manga>,
@@ -74,7 +73,7 @@ internal fun GlobalSearchContent(
         items.forEach { (source, result) ->
             item(key = source.id) {
                 GlobalSearchResultItem(
-                    title = fromSourceId?.let { "▶ ${source.name}".takeIf { source.id == fromSourceId } } ?: source.name,
+                    title = source.name,
                     subtitle = LocaleHelper.getDisplayName(source.lang),
                     onClick = { onClickSource(source) },
                 ) {
@@ -83,6 +82,18 @@ internal fun GlobalSearchContent(
                             GlobalSearchLoadingResultItem()
                         }
                         is SearchItemResult.Success -> {
+                            if (result.isEmpty) {
+                                Text(
+                                    text = stringResource(R.string.no_results_found),
+                                    modifier = Modifier
+                                        .padding(
+                                            horizontal = MaterialTheme.padding.medium,
+                                            vertical = MaterialTheme.padding.small,
+                                        ),
+                                )
+                                return@GlobalSearchResultItem
+                            }
+
                             GlobalSearchCardRow(
                                 titles = result.result,
                                 getManga = getManga,

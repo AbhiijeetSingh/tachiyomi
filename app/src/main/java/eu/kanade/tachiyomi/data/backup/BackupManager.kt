@@ -5,6 +5,7 @@ import android.content.Context
 import android.net.Uri
 import com.hippo.unifile.UniFile
 import eu.kanade.domain.chapter.model.copyFrom
+import eu.kanade.domain.manga.model.copyFrom
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.backup.BackupConst.BACKUP_CATEGORY
 import eu.kanade.tachiyomi.data.backup.BackupConst.BACKUP_CATEGORY_MASK
@@ -38,7 +39,6 @@ import tachiyomi.data.UpdateStrategyColumnAdapter
 import tachiyomi.domain.backup.service.BackupPreferences
 import tachiyomi.domain.category.interactor.GetCategories
 import tachiyomi.domain.category.model.Category
-import tachiyomi.domain.history.interactor.GetHistory
 import tachiyomi.domain.history.model.HistoryUpdate
 import tachiyomi.domain.library.service.LibraryPreferences
 import tachiyomi.domain.manga.interactor.GetFavorites
@@ -60,7 +60,6 @@ class BackupManager(
     private val libraryPreferences: LibraryPreferences = Injekt.get()
     private val getCategories: GetCategories = Injekt.get()
     private val getFavorites: GetFavorites = Injekt.get()
-    private val getHistory: GetHistory = Injekt.get()
 
     internal val parser = ProtoBuf
 
@@ -205,11 +204,11 @@ class BackupManager(
 
         // Check if user wants history information in backup
         if (options and BACKUP_HISTORY_MASK == BACKUP_HISTORY) {
-            val historyByMangaId = getHistory.await(manga.id)
+            val historyByMangaId = handler.awaitList(true) { historyQueries.getHistoryByMangaId(manga.id) }
             if (historyByMangaId.isNotEmpty()) {
                 val history = historyByMangaId.map { history ->
-                    val chapter = handler.awaitOne { chaptersQueries.getChapterById(history.chapterId) }
-                    BackupHistory(chapter.url, history.readAt?.time ?: 0L, history.readDuration)
+                    val chapter = handler.awaitOne { chaptersQueries.getChapterById(history.chapter_id) }
+                    BackupHistory(chapter.url, history.last_read?.time ?: 0L, history.time_read)
                 }
                 if (history.isNotEmpty()) {
                     mangaObject.history = history

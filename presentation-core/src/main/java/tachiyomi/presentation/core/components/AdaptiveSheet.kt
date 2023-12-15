@@ -56,7 +56,6 @@ private val sheetAnimationSpec = tween<Float>(durationMillis = 350)
 
 @Composable
 fun AdaptiveSheet(
-    modifier: Modifier = Modifier,
     isTabletUi: Boolean,
     tonalElevation: Dp,
     enableSwipeDismiss: Boolean,
@@ -99,8 +98,7 @@ fun AdaptiveSheet(
                         onClick = {},
                     )
                     .systemBarsPadding()
-                    .padding(vertical = 16.dp)
-                    .then(modifier),
+                    .padding(vertical = 16.dp),
                 shape = MaterialTheme.shapes.extraLarge,
                 tonalElevation = tonalElevation,
                 content = {
@@ -163,7 +161,6 @@ fun AdaptiveSheet(
                             Modifier
                         },
                     )
-                    .then(modifier)
                     .offset {
                         IntOffset(
                             0,

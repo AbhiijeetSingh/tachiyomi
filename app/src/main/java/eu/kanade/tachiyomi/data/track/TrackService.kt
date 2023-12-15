@@ -13,7 +13,6 @@ import eu.kanade.domain.track.service.TrackPreferences
 import eu.kanade.tachiyomi.data.database.models.Track
 import eu.kanade.tachiyomi.data.track.model.TrackSearch
 import eu.kanade.tachiyomi.network.NetworkHelper
-import eu.kanade.tachiyomi.util.lang.convertEpochMillisZone
 import eu.kanade.tachiyomi.util.system.toast
 import logcat.LogPriority
 import okhttp3.OkHttpClient
@@ -21,12 +20,10 @@ import tachiyomi.core.util.lang.withIOContext
 import tachiyomi.core.util.lang.withUIContext
 import tachiyomi.core.util.system.logcat
 import tachiyomi.domain.chapter.interactor.GetChapterByMangaId
-import tachiyomi.domain.history.interactor.GetHistory
 import tachiyomi.domain.track.interactor.InsertTrack
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import uy.kohesive.injekt.injectLazy
-import java.time.ZoneOffset
 import tachiyomi.domain.track.model.Track as DomainTrack
 
 abstract class TrackService(val id: Long) {
@@ -128,6 +125,7 @@ abstract class TrackService(val id: Long) {
                         )
                         setRemoteLastChapterRead(track.toDbTrack(), latestLocalReadChapterNumber.toInt())
                     }
+<<<<<<< HEAD
 
                     if (track.startDate <= 0) {
                         val firstReadChapterDate = Injekt.get<GetHistory>().await(mangaId)
@@ -143,6 +141,8 @@ abstract class TrackService(val id: Long) {
                             setRemoteStartDate(track.toDbTrack(), startDate)
                         }
                     }
+=======
+>>>>>>> parent of 05ce223db (Merge branch 'tachiyomiorg:master' into master)
                 }
 
                 if (this is EnhancedTrackService) {
@@ -163,7 +163,7 @@ abstract class TrackService(val id: Long) {
     }
 
     suspend fun setRemoteLastChapterRead(track: Track, chapterNumber: Int) {
-        if (track.last_chapter_read == 0f && track.last_chapter_read < chapterNumber && track.status != getRereadingStatus()) {
+        if (track.last_chapter_read == 0F && track.last_chapter_read < chapterNumber && track.status != getRereadingStatus()) {
             track.status = getReadingStatus()
         }
         track.last_chapter_read = chapterNumber.toFloat()

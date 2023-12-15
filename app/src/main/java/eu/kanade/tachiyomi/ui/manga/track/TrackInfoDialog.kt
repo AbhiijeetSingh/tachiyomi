@@ -20,7 +20,6 @@ import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,7 +55,6 @@ import eu.kanade.tachiyomi.data.track.EnhancedTrackService
 import eu.kanade.tachiyomi.data.track.TrackManager
 import eu.kanade.tachiyomi.data.track.TrackService
 import eu.kanade.tachiyomi.data.track.model.TrackSearch
-import eu.kanade.tachiyomi.util.lang.convertEpochMillisZone
 import eu.kanade.tachiyomi.util.system.openInBrowser
 import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.coroutines.flow.catch
@@ -83,6 +81,7 @@ import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
 
@@ -266,7 +265,6 @@ data class TrackInfoDialogHomeScreen(
                 .filter { (it.service as? EnhancedTrackService)?.accept(source) ?: true }
         }
 
-        @Immutable
         data class State(
             val trackItems: List<TrackItem> = emptyList(),
         )
@@ -316,7 +314,6 @@ private data class TrackStatusSelectorScreen(
             }
         }
 
-        @Immutable
         data class State(
             val selection: Int,
         )
@@ -372,7 +369,6 @@ private data class TrackChapterSelectorScreen(
             }
         }
 
-        @Immutable
         data class State(
             val selection: Int,
         )
@@ -423,7 +419,6 @@ private data class TrackScoreSelectorScreen(
             }
         }
 
-        @Immutable
         data class State(
             val selection: String,
         )
@@ -534,13 +529,13 @@ private data class TrackDateSelectorScreen(
                 val millis = (if (start) track.startDate else track.finishDate)
                     .takeIf { it != 0L }
                     ?: Instant.now().toEpochMilli()
-                return millis.convertEpochMillisZone(ZoneOffset.systemDefault(), ZoneOffset.UTC)
+                return convertEpochMillisZone(millis, ZoneOffset.systemDefault(), ZoneOffset.UTC)
             }
 
         // In UTC
         fun setDate(millis: Long) {
             // Convert to local time
-            val localMillis = millis.convertEpochMillisZone(ZoneOffset.UTC, ZoneOffset.systemDefault())
+            val localMillis = convertEpochMillisZone(millis, ZoneOffset.UTC, ZoneOffset.systemDefault())
             coroutineScope.launchNonCancellable {
                 if (start) {
                     service.setRemoteStartDate(track.toDbTrack(), localMillis)
@@ -552,6 +547,19 @@ private data class TrackDateSelectorScreen(
 
         fun confirmRemoveDate(navigator: Navigator) {
             navigator.push(TrackDateRemoverScreen(track, service.id, start))
+        }
+    }
+
+    companion object {
+        private fun convertEpochMillisZone(
+            localMillis: Long,
+            from: ZoneId,
+            to: ZoneId,
+        ): Long {
+            return LocalDateTime.ofInstant(Instant.ofEpochMilli(localMillis), from)
+                .atZone(to)
+                .toInstant()
+                .toEpochMilli()
         }
     }
 }
@@ -716,7 +724,6 @@ data class TrackServiceSearchScreen(
             mutableState.update { it.copy(selected = selected) }
         }
 
-        @Immutable
         data class State(
             val queryResult: Result<List<TrackSearch>>? = null,
             val selected: TrackSearch? = null,

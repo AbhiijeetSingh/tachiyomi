@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FlipToBack
@@ -50,6 +49,11 @@ import tachiyomi.data.Database
 import tachiyomi.domain.source.interactor.GetSourcesWithNonLibraryManga
 import tachiyomi.domain.source.model.Source
 import tachiyomi.domain.source.model.SourceWithCount
+<<<<<<< HEAD
+=======
+import tachiyomi.presentation.core.components.FastScrollLazyColumn
+import tachiyomi.presentation.core.components.material.Divider
+>>>>>>> parent of 05ce223db (Merge branch 'tachiyomiorg:master' into master)
 import tachiyomi.presentation.core.components.material.Scaffold
 import tachiyomi.presentation.core.screens.EmptyScreen
 import tachiyomi.presentation.core.screens.LoadingScreen
@@ -136,7 +140,7 @@ class ClearDatabaseScreen : Screen() {
                                 .padding(contentPadding)
                                 .fillMaxSize(),
                         ) {
-                            LazyColumn(
+                            FastScrollLazyColumn(
                                 modifier = Modifier.weight(1f),
                             ) {
                                 items(s.items) { sourceWithCount ->

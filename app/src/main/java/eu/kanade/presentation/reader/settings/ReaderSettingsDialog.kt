@@ -1,8 +1,6 @@
 package eu.kanade.presentation.reader.settings
 
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -25,6 +23,9 @@ fun ReaderSettingsDialog(
     onHideMenus: () -> Unit,
     screenModel: ReaderSettingsScreenModel,
 ) {
+    // TODO: undimming doesn't seem to work
+    val window = (LocalView.current.parent as? DialogWindowProvider)?.window
+
     val tabTitles = listOf(
         stringResource(R.string.pref_category_reading_mode),
         stringResource(R.string.pref_category_general),
@@ -32,38 +33,33 @@ fun ReaderSettingsDialog(
     )
     val pagerState = rememberPagerState { tabTitles.size }
 
-    BoxWithConstraints {
-        TabbedDialog(
-            modifier = Modifier.heightIn(max = maxHeight * 0.75f),
-            onDismissRequest = {
-                onDismissRequest()
-                onShowMenus()
-            },
-            tabTitles = tabTitles,
-            pagerState = pagerState,
-        ) { page ->
-            val window = (LocalView.current.parent as? DialogWindowProvider)?.window
+    LaunchedEffect(pagerState.currentPage) {
+        if (pagerState.currentPage == 2) {
+            window?.setDimAmount(0f)
+            onHideMenus()
+        } else {
+            window?.setDimAmount(0.75f)
+            onShowMenus()
+        }
+    }
 
-            LaunchedEffect(pagerState.currentPage) {
-                if (pagerState.currentPage == 2) {
-                    window?.setDimAmount(0f)
-                    onHideMenus()
-                } else {
-                    window?.setDimAmount(0.5f)
-                    onShowMenus()
-                }
-            }
-
-            Column(
-                modifier = Modifier
-                    .padding(vertical = TabbedDialogPaddings.Vertical)
-                    .verticalScroll(rememberScrollState()),
-            ) {
-                when (page) {
-                    0 -> ReadingModePage(screenModel)
-                    1 -> GeneralPage(screenModel)
-                    2 -> ColorFilterPage(screenModel)
-                }
+    TabbedDialog(
+        onDismissRequest = {
+            onDismissRequest()
+            onShowMenus()
+        },
+        tabTitles = tabTitles,
+        pagerState = pagerState,
+    ) { page ->
+        Column(
+            modifier = Modifier
+                .padding(vertical = TabbedDialogPaddings.Vertical)
+                .verticalScroll(rememberScrollState()),
+        ) {
+            when (page) {
+                0 -> ReadingModePage(screenModel)
+                1 -> GeneralPage(screenModel)
+                2 -> ColorFilterPage(screenModel)
             }
         }
     }
